@@ -35,7 +35,7 @@ namespace Chess
 
         private void InitializeDefault()
         {
-            squares = new PictureBox[boardWidth, boardHeight];
+            squares = new PictureBox[boardHeight, boardWidth];
             this.Paint += boardView_Paint;
         }
 
@@ -52,9 +52,9 @@ namespace Chess
 
         private void CreateBoardUI()
         {
-            for (int row = 0; row < 8; row++)
+            for (int row = 0; row < boardHeight; row++)
             {
-                for (int col = 0; col < 8; col++)
+                for (int col = 0; col < boardWidth; col++)
                 {
                     var pb = new PictureBox();
                     pb.Width = tileSize;
@@ -66,6 +66,7 @@ namespace Chess
                     pb.BackColor = isDark ? Color.SaddleBrown : Color.Beige;
 
                     pb.Tag = (row, col);
+                    pb.Paint += DrawSquareNotation;
 
                     Controls.Add(pb);
                     squares[row, col] = pb;
@@ -75,9 +76,49 @@ namespace Chess
 
         private void boardView_Paint(object sender, PaintEventArgs e)
         {
-            // opcjonalne rysowanie
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            using var font = new Font("Consolas", 14, FontStyle.Bold);
+            using var brush = new SolidBrush(Color.Red);
+
+            for (int row = 0; row < boardHeight; row++)
+            {
+                for (int col = 0; col < boardWidth; col++)
+                {
+                    string file = ((char)('a' + col)).ToString();
+                    string rank = (8 - row).ToString(); // klasyczna notacja szachowa
+
+                    string text = file + rank;
+
+                    int x = col * tileSize + 4;                 // lewy dolny róg
+                    int y = (row + 1) * tileSize - 20;
+
+                    g.DrawString(text, font, brush, x, y);
+                }
+            }
         }
+        private void DrawSquareNotation(object sender, PaintEventArgs e)
+        {
+            var pb = sender as PictureBox;
+            var (row, col) = ((int row, int col))pb.Tag;
+
+            string file = ((char)('a' + col)).ToString();
+            string rank = (8 - row).ToString();
+            string text = file + rank;
+
+            using var font = new Font("Consolas", 12, FontStyle.Bold);
+            using var brush = new SolidBrush(Color.Red);
+
+            // lewy dolny róg
+            int x = 3;
+            int y = pb.Height - 18;
+
+            e.Graphics.DrawString(text, font, brush, x, y);
+        }
+
     }
+
 
 
 }

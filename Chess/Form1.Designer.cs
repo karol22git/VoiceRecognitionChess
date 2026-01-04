@@ -54,6 +54,7 @@
             panel3.Name = "panel3";
             panel3.Size = new Size(241, 136);
             panel3.TabIndex = 2;
+            panel3.Paint += panel3_Paint;
             // 
             // panel4
             // 
@@ -102,14 +103,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1076, 788);
-            Controls.Add(button2);
-            Controls.Add(button1);
-            Controls.Add(panel4);
-            Controls.Add(panel6);
-            Controls.Add(panel5);
-            Controls.Add(panel3);
-            Controls.Add(panel2);
+            ClientSize = new Size(1060, 736);
             Name = "Form1";
             Text = "Form1";
             Load += Form1_Load;
