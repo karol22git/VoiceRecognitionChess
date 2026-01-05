@@ -8,6 +8,7 @@ namespace Chess
         {
             this.AutoScaleMode = AutoScaleMode.None;
             InitializeComponent();
+          //  using (var dlg = new FormStartDialog()) { if (dlg.ShowDialog() != DialogResult.OK) { Close(); return; } playerColor = dlg.SelectedColor; difficulty = dlg.SelectedDifficulty; }
             InitializeBoardView();
             InitializeGraveyards();
             InitializeClocks();
@@ -56,10 +57,29 @@ namespace Chess
         {
 
         }
+        //public void InitializeBoardView()
+        //{
+        //
+        //    bView = new BoardView(boardViewPosition);
+        //}
         public void InitializeBoardView()
         {
+            board = new Board();
             bView = new BoardView(boardViewPosition);
+            bView.Board = board;
+            using (var dlg = new FormStartDialog())
+            {
+                if (dlg.ShowDialog() == DialogResult.OK)
+                {
+                    playerColor = dlg.SelectedColor;
+                    bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
+                }
+            }
+            //  bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
+            //bView.IsWhiteOrientation = true; // czarne na dole bView.RebuildBoard();
+            bView.Invalidate();
         }
+
         public void InitializeRightContainer()
         {
             rightContainer = new FlowLayoutPanel();
@@ -169,8 +189,12 @@ namespace Chess
         private Panel rightWrapper;
         private TableLayoutPanel mainContainer;
 
+        private Board board;
 
         private bool whiteToMove = true;
+
+        private FormStartDialog.PlayerColor playerColor;
+        private int difficulty;
 
         private void button2_Click(object sender, EventArgs e)
         {
