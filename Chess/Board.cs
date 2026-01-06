@@ -70,5 +70,62 @@ namespace Chess
             Squares[6, 7] = Piece.BlackKnight;    // g8
             Squares[7, 7] = Piece.BlackRook;      // h8
         }
+        public void LoadFromFEN(string fen)
+        {
+            string[] parts = fen.Split(' ');
+            string boardPart = parts[0];
+
+            int file = 0;
+            int rank = 7;
+
+            foreach (char c in boardPart)
+            {
+                if (c == '/')
+                {
+                    rank--;
+                    file = 0;
+                    continue;
+                }
+
+                if (char.IsDigit(c))
+                {
+                    int empty = c - '0';
+                    for (int i = 0; i < empty; i++)
+                    {
+                        Squares[file, rank] = Piece.None;
+                        file++;
+                    }
+                }
+                else
+                {
+                    Squares[file, rank] = FenCharToPiece(c);
+                    file++;
+                }
+            }
+        }
+
+        private Piece FenCharToPiece(char c)
+        {
+            return c switch
+            {
+                'p' => Piece.BlackPawn,
+                'n' => Piece.BlackKnight,
+                'b' => Piece.BlackBishop,
+                'r' => Piece.BlackRook,
+                'q' => Piece.BlackQueen,
+                'k' => Piece.BlackKing,
+
+                'P' => Piece.WhitePawn,
+                'N' => Piece.WhiteKnight,
+                'B' => Piece.WhiteBishop,
+                'R' => Piece.WhiteRook,
+                'Q' => Piece.WhiteQueen,
+                'K' => Piece.WhiteKing,
+
+                _ => Piece.None
+            };
+        }
+
+
     }
 }

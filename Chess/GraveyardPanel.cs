@@ -28,7 +28,13 @@ namespace Chess
         {
             // opcjonalne rysowanie
         }
-  
+        public void Clear()
+        {
+            for (int row = 0; row < boardHeight; row++)
+                for (int col = 0; col < boardWidth; col++)
+                    squares[row, col].Image = null;
+        }
+
 
         private void CreateBoardUI()
         {
@@ -54,5 +60,45 @@ namespace Chess
                 }
             }
         }
+        public void AddPiece(Piece piece)
+        {
+            Image img = GetPieceImage(piece);
+
+            for (int row = 0; row < boardHeight; row++)
+            {
+                for (int col = 0; col < boardWidth; col++)
+                {
+                    if (squares[row, col].Image == null)
+                    {
+                        squares[row, col].Image = img;
+                        squares[row, col].SizeMode = PictureBoxSizeMode.StretchImage;
+                        return;
+                    }
+                }
+            }
+            Invalidate();
+        }
+        private Image GetPieceImage(Piece piece)
+        {
+            return piece switch
+            {
+                Piece.WhitePawn => Properties.Resources.white_pawn_svg,
+                Piece.WhiteKnight => Properties.Resources.white_knight_svg,
+                Piece.WhiteBishop => Properties.Resources.white_bishop_svg,
+                Piece.WhiteRook => Properties.Resources.white_rook_svg,
+                Piece.WhiteQueen => Properties.Resources.white_queen_svg,
+                Piece.WhiteKing => Properties.Resources.white_king_svg,
+
+                Piece.BlackPawn => Properties.Resources.black_pawn_svg,
+                Piece.BlackKnight => Properties.Resources.black_knight_svg,
+                Piece.BlackBishop => Properties.Resources.black_bishop_svg,
+                Piece.BlackRook => Properties.Resources.black_rook_svg,
+                Piece.BlackQueen => Properties.Resources.black_queen_svg,
+                Piece.BlackKing => Properties.Resources.black_king_svg,
+
+                _ => null
+            };
+        }
+
     }
 }

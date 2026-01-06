@@ -1,184 +1,9 @@
-﻿/*using System;
-using System.Drawing;
-using System.Windows.Forms;
-
-namespace Chess
-{
-    public class BoardView : Panel
-    {
-        public PictureBox[,] squares { get; private set; }
-        public bool IsWhiteOrientation { get; set; } = true; // Ustawiamy na sztywno false
-
-        private const int boardHeight = 8;
-        private const int boardWidth = 8;
-        private const int tileSize = 90;
-        public Board Board { get; set; }
-
-        public BoardView(Point p)
-        {
-            Location = p;
-            Size = new Size(boardWidth * tileSize, boardHeight * tileSize);
-            InitializeDefault();
-
-            // DEBUG: wypisz w konsoli
-            Debug.WriteLine($"Konstruktor BoardView: IsWhiteOrientation = {IsWhiteOrientation}");
-        }
-
-        private void InitializeDefault()
-        {
-            squares = new PictureBox[boardHeight, boardWidth];
-        }
-
-        protected override void OnHandleCreated(EventArgs e)
-        {
-            base.OnHandleCreated(e);
-            if (!DesignMode)
-            {
-                Debug.WriteLine("OnHandleCreated - rozpoczynam RebuildBoard");
-                RebuildBoard();
-            }
-        }
-
-        public void RebuildBoard()
-        {
-            Debug.WriteLine($"=== REBUILD BOARD ===");
-            Debug.WriteLine($"IsWhiteOrientation przed rebuild: {IsWhiteOrientation}");
-
-            Controls.Clear();
-            CreateBoardUI();
-            Invalidate();
-        }
-
-        private void CreateBoardUI()
-        {
-            // ZAWSZE rysuj w ten sam sposób - bez transformacji
-            for (int row = 0; row < boardHeight; row++)
-            {
-                for (int col = 0; col < boardWidth; col++)
-                {
-                    PictureBox pb = new PictureBox();
-                    pb.Width = tileSize;
-                    pb.Height = tileSize;
-
-                    // ZAWSZE: rząd 0 na górze, rząd 7 na dole
-                    pb.Location = new Point(col * tileSize, row * tileSize);
-
-                    // Kolor zawsze według (row + col)
-                    bool isDark = (row + col) % 2 == 1;
-                    pb.BackColor = isDark ? Color.SaddleBrown : Color.Beige;
-
-                    pb.Tag = (row, col);
-                    pb.Paint += DrawSquareNotation;
-
-                    Controls.Add(pb);
-                    squares[row, col] = pb;
-                }
-            }
-        }
-
-        private void DrawSquareNotation(object sender, PaintEventArgs e)
-        {
-            PictureBox pb = sender as PictureBox;
-            var (row, col) = ((int row, int col))pb.Tag;
-
-            string notation;
-
-            if (IsWhiteOrientation)
-            {
-                // Gracz białymi: standard
-                // row=7 (dół) -> 8-7=1, col=0 (lewo) -> 'a'
-                notation = $"{(char)('a' + col)}{8 - row}";
-            }
-            else
-            {
-                // Gracz czarnymi: siedzi na dole, ale widzi planszę odwróconą
-                // Jego lewy dolny to prawy górny z perspektywy białych
-
-                // Odwracamy wszystko:
-                char file = (char)('a' + (7 - col));  // Odwrócone kolumny
-                int rank = row + 1;                    // Nie odwracamy rzędów
-
-                notation = $"{file}{rank}";
-            }
-
-            using Font font = new Font("Consolas", 12, FontStyle.Bold);
-            e.Graphics.DrawString(notation, font, Brushes.Red, 3, pb.Height - 18);
-
-            // Dodaj test: jaki powinien być wynik
-            string expected;
-            if (IsWhiteOrientation)
-                expected = $"{(char)('a' + col)}{8 - row}";
-            else
-                expected = $"{(char)('a' + (7 - col))}{row + 1}";
-
-            e.Graphics.DrawString($"Exp: {expected}", font, Brushes.Purple, 3, 5);
-        }
-
-
-        // Klasa pomocnicza do debugowania
-        public static class Debug
-        {
-            public static void WriteLine(string message)
-            {
-                System.Diagnostics.Debug.WriteLine(message);
-                Console.WriteLine(message);
-            }
-        }
-       // protected override void OnPaint(PaintEventArgs e)
-       // {
-       //     base.OnPaint(e);
-       //
-       //     DrawBoard(e.Graphics);
-       //     DrawPieces(e.Graphics);
-       // }
-       // private void DrawPieces(Graphics g)
-       // {
-       //     int size = tileSize;
-       //
-       //     for (int x = 0; x < 8; x++)
-       //     {
-       //         for (int y = 0; y < 8; y++)
-       //         {
-       //             Piece piece = Board.Squares[x, y];
-       //             if (piece == Piece.None)
-       //                 continue;
-       //
-       //             Image img = GetPieceImage(piece);
-       //             g.DrawImage(img, x * size, y * size, size, size);
-       //         }
-       //     }
-       // }
-
-   // }
-    private Image GetPieceImage(Piece piece)
-        {
-            return piece switch
-            {
-                Piece.WhitePawn => Properties.Resources.white_pawn_svg,
-                Piece.WhiteKnight => Properties.Resources.white_knight_svg,
-                Piece.WhiteBishop => Properties.Resources.white_bishop_svg,
-                Piece.WhiteRook => Properties.Resources.white_rook_svg,
-                Piece.WhiteQueen => Properties.Resources.white_queen_svg,
-                Piece.WhiteKing => Properties.Resources.white_king_svg,
-
-                Piece.BlackPawn => Properties.Resources.black_pawn_svg,
-                Piece.BlackKnight => Properties.Resources.black_knight_svg,
-                Piece.BlackBishop => Properties.Resources.black_bishop_svg,
-                Piece.BlackRook => Properties.Resources.black_rook_svg,
-                Piece.BlackQueen => Properties.Resources.black_queen_svg,
-                Piece.BlackKing => Properties.Resources.black_king_svg,
-
-                _ => null
-            };
-        }
-
-    }
-}*/
-
+﻿using ChessDotNet;
 using System;
 using System.Drawing;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
-
+using UiPiece = Chess.Piece;
 namespace Chess
 {
     public class BoardView : Panel
@@ -187,12 +12,17 @@ namespace Chess
         public bool IsWhiteOrientation { get; set; } = true;
 
         private const int tileSize = 90;
+        private Point? selectedSquare = null;
+        private ChessGameLogic gameLogic = new ChessGameLogic();
+        private List<Point> legalMoves = new List<Point>();
+        public event Action<UiPiece> PieceCaptured;
 
         public BoardView(Point location)
         {
             Location = location;
             Size = new Size(8 * tileSize, 8 * tileSize);
-            DoubleBuffered = true; // płynne rysowanie
+            //DoubleBuffered = true; // płynne rysowanie
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true); UpdateStyles();
         }
 
         // ============================
@@ -201,11 +31,32 @@ namespace Chess
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-
             DrawBoard(e.Graphics);
             DrawPieces(e.Graphics);
            // DrawCoordinates(e.Graphics);
            DrawSquareCoordinates(e.Graphics);
+            if (selectedSquare != null)
+                HighlightSquare(e.Graphics, selectedSquare.Value);
+            // RYSOWANIE ZIELONYCH OBRAMÓWEK
+            using (Pen pen = new Pen(Color.FromArgb(0, 180, 0), 5))
+
+            {
+                foreach (var move in legalMoves)
+                {
+                    Point p = BoardToScreen(move.X, move.Y);
+
+                    Rectangle rect = new Rectangle(
+                        p.X,
+                        p.Y,
+                        tileSize,
+                        tileSize
+                    );
+
+                    e.Graphics.DrawRectangle(pen, rect);
+                }
+            }
+
+
         }
 
         private void DrawBoard(Graphics g)
@@ -315,9 +166,36 @@ namespace Chess
         // ============================
         // MAPOWANIE ENUM → OBRAZEK
         // ============================
+        //private Image GetPieceImage(Piece piece)
+        //{
+        //    return piece switch
+        //    {
+        //        Piece.WhitePawn => Properties.Resources.white_pawn_svg,
+        //        Piece.WhiteKnight => Properties.Resources.white_knight_svg,
+        //        Piece.WhiteBishop => Properties.Resources.white_bishop_svg,
+        //        Piece.WhiteRook => Properties.Resources.white_rook_svg,
+        //        Piece.WhiteQueen => Properties.Resources.white_queen_svg,
+        //        Piece.WhiteKing => Properties.Resources.white_king_svg,
+        //
+        //        Piece.BlackPawn => Properties.Resources.black_pawn_svg,
+        //        Piece.BlackKnight => Properties.Resources.black_knight_svg,
+        //        Piece.BlackBishop => Properties.Resources.black_bishop_svg,
+        //        Piece.BlackRook => Properties.Resources.black_rook_svg,
+        //        Piece.BlackQueen => Properties.Resources.black_queen_svg,
+        //        Piece.BlackKing => Properties.Resources.black_king_svg,
+        //
+        //        _ => null
+        //    };
+        //}
+        private static readonly Dictionary<Piece, Image> imageCache = new();
+        public event Action<string, bool> MoveMade;
+
         private Image GetPieceImage(Piece piece)
         {
-            return piece switch
+            if (imageCache.TryGetValue(piece, out var img))
+                return img;
+
+            img = piece switch
             {
                 Piece.WhitePawn => Properties.Resources.white_pawn_svg,
                 Piece.WhiteKnight => Properties.Resources.white_knight_svg,
@@ -332,10 +210,12 @@ namespace Chess
                 Piece.BlackRook => Properties.Resources.black_rook_svg,
                 Piece.BlackQueen => Properties.Resources.black_queen_svg,
                 Piece.BlackKing => Properties.Resources.black_king_svg,
-
-                _ => null
             };
+
+            imageCache[piece] = img;
+            return img;
         }
+
         private void DrawSquareCoordinates(Graphics g)
         {
             using Font font = new Font("Consolas", 10, FontStyle.Bold);
@@ -363,7 +243,102 @@ namespace Chess
                 }
             }
         }
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
 
+            if (Board == null)
+                return;
+
+            Point? boardPos = ScreenToBoard(e.X, e.Y);
+            if (boardPos == null)
+                return;
+
+            Point clicked = boardPos.Value;
+
+            // 1. Jeśli NIC nie jest wybrane – wybieramy bierkę
+            if (selectedSquare == null)
+            {
+                Piece clickedPiece = Board.GetPiece(clicked.X, clicked.Y);
+
+                if (clickedPiece == Piece.None)
+                    return;
+
+                // CZYSZCZENIE POPRZEDNICH OBRAMÓWEK
+                legalMoves.Clear();
+
+                selectedSquare = clicked;
+
+                // WYLICZ LEGALNE RUCHY
+                legalMoves = gameLogic.GetLegalMoves(clicked);
+
+                Invalidate();
+                return;
+            }
+
+
+
+            // 2. Jeśli coś było wybrane – próbujemy wykonać ruch
+            Point from = selectedSquare.Value;
+            Point to = clicked;
+
+            // Jeśli kliknięto to samo pole – anuluj wybór
+            if (from == to)
+            {
+                selectedSquare = null;
+                legalMoves.Clear();
+                Invalidate();
+                return;
+            }
+            Piece targetPiece = Board.GetPiece(to.X, to.Y);
+            bool capture = targetPiece != Piece.None;
+
+
+            // Próba wykonania ruchu przez silnik
+            if (gameLogic.TryMakeMove(from, to))
+            {
+                string notation = gameLogic.GetMoveNotation(from, to);
+                bool whiteMoved = gameLogic.WhoseTurn == Player.Black;
+                // bo po ruchu tura się zmienia
+                if (capture)
+                {
+                    PieceCaptured?.Invoke(targetPiece);
+                }
+
+                MoveMade?.Invoke(notation, whiteMoved);
+
+                gameLogic.SyncBoard(Board);
+            }
+
+            selectedSquare = null;
+            legalMoves.Clear();
+            Invalidate();
+            string result = gameLogic.CheckGameEnd();
+            if (result != null)
+            {
+                MessageBox.Show(result, "Koniec gry", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                GameEnded?.Invoke();
+                return;
+            }
+        }
+
+        private void HighlightSquare(Graphics g, Point square)
+        {
+            Point p = BoardToScreen(square.X, square.Y);
+
+            using Brush brush = new SolidBrush(Color.FromArgb(120, 0, 180, 0)); // półprzezroczysty zielony
+            g.FillRectangle(brush, p.X, p.Y, tileSize, tileSize);
+        }
+
+        public void RestartGame()
+        {
+            gameLogic = new ChessGameLogic();
+            Board = new Board();
+            selectedSquare = null;
+            legalMoves.Clear();
+
+        }
+        public event Action GameEnded;
 
     }
 }

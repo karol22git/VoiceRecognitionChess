@@ -1,5 +1,5 @@
 using System.Drawing.Drawing2D;
-
+using UiPiece = Chess.Piece;
 namespace Chess
 {
     public partial class Form1 : Form
@@ -17,6 +17,10 @@ namespace Chess
             InitializeContainerForButtons();
             InitializeMainContainer();
             FitComponents();
+            bView.GameEnded += () => ResetGame();
+
+            bView.MoveMade += OnMoveMade;
+            bView.PieceCaptured += OnPieceCaptured;
             timer1.Interval = 1000;
             timer1.Tick += TimerTick;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -78,6 +82,10 @@ namespace Chess
             //  bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
             //bView.IsWhiteOrientation = true; // czarne na dole bView.RebuildBoard();
             bView.Invalidate();
+        }
+        private void OnMoveMade(string notation, bool whiteMoved)
+        {
+            history.AddMove(notation, whiteMoved);
         }
 
         public void InitializeRightContainer()
@@ -212,6 +220,37 @@ namespace Chess
             return $"{m:00}:{s:00}";
         }
 
+        private void OnPieceCaptured(UiPiece piece)
+        {
+            if (IsWhitePiece(piece))
+                oppGraveyardPanel.AddPiece(piece); // czarne zbily bia³¹ figurê
+            else
+                myGraveyardPanel.AddPiece(piece); // bia³e zbily czarn¹ figurê
+        }
+        private bool IsWhitePiece(UiPiece p)
+        {
+            return p == UiPiece.WhitePawn ||
+                   p == UiPiece.WhiteKnight ||
+                   p == UiPiece.WhiteBishop ||
+                   p == UiPiece.WhiteRook ||
+                   p == UiPiece.WhiteQueen ||
+                   p == UiPiece.WhiteKing;
+        }
+        private void ResetGame()
+        {
+            // 1. Reset logiki gry
+            bView.RestartGame();
+
+            // 3. Reset historii ruchów
+            history.Clear();
+
+            // 4. Reset cmentarzy
+            myGraveyardPanel.Clear();
+            oppGraveyardPanel.Clear();
+
+            // 5. Odœwie¿ widok
+            bView.Invalidate();
+        }
 
     }
 }

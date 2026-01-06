@@ -56,6 +56,13 @@ namespace Chess
                 // przewijanie do dołu
                 listView.EnsureVisible(listView.Items.Count - 1);
             }
+        public void Clear()
+        {
+            listView.Items.Clear();
+            moveNumber = 1;
         }
+
+    }
+
 }
 
