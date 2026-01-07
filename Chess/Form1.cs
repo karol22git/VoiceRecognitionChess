@@ -17,7 +17,9 @@ namespace Chess
             InitializeContainerForButtons();
             InitializeMainContainer();
             FitComponents();
-            bView.GameEnded += () => ResetGame();
+            OrganizeButtons();
+            //bView.GameEnded += () => ResetGame();
+            bView.GameEnded += (winner, reason) => EndGame(winner, reason);
 
             bView.MoveMade += OnMoveMade;
             bView.PieceCaptured += OnPieceCaptured;
@@ -77,6 +79,7 @@ namespace Chess
                 {
                     playerColor = dlg.SelectedColor;
                     bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
+                    gameTimeSeconds = dlg.SelectedTimeMinutes * 60; gameIncrement = dlg.SelectedIncrement;
                 }
             }
             //  bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
@@ -86,6 +89,31 @@ namespace Chess
         private void OnMoveMade(string notation, bool whiteMoved)
         {
             history.AddMove(notation, whiteMoved);
+            if (!timer1.Enabled) timer1.Start();
+            HandleClockAfterMove();
+        }
+        private void HandleClockAfterMove()
+        {
+            // Strona, która wykona³a ruch, dostaje inkrement
+            if (whiteToMove)
+                whiteClock.ApplyIncrement();
+            else
+                blackClock.ApplyIncrement();
+
+            // Teraz ruch przeciwnika
+            whiteToMove = !whiteToMove;
+
+            // Prze³¹cz aktywny zegar
+            if (whiteToMove)
+            {
+                whiteClock.Start();
+                blackClock.Stop();
+            }
+            else
+            {
+                blackClock.Start();
+                whiteClock.Stop();
+            }
         }
 
         public void InitializeRightContainer()
@@ -106,6 +134,24 @@ namespace Chess
 
         }
 
+
+        public void OrganizeButtons()
+        {
+            button1.Text = "Quit";
+            button1.Click += buttonQuit_Click;
+
+
+            button2.Text = "Surrender";
+            button2.Click += buttonSurrender_Click;
+
+
+        }
+        private void buttonSurrender_Click(object sender, EventArgs e)
+        {
+            var winner = whiteToMove ? GameWinner.Black : GameWinner.White;
+
+            EndGame(winner, GameEndReason.Surrender);
+        }
 
 
         public void InitializeContainerForButtons()
@@ -133,11 +179,12 @@ namespace Chess
 
         public void InitializeClocks()
         {
-            whiteClock = new ChessClock(300, 2); // 5 min + 2 sek
-            blackClock = new ChessClock(300, 2);
+            whiteClock = new ChessClock(gameTimeSeconds, gameIncrement);
+            blackClock = new ChessClock(gameTimeSeconds, gameIncrement);
+
 
             myLabel = new Label();
-            myLabel.Text = "05:00";
+            myLabel.Text = FormatTime(gameTimeSeconds);
             myLabel.Font = new Font("Consolas", 24);
             myLabel.AutoSize = true;
             myLabel.ForeColor = Color.White;
@@ -146,7 +193,7 @@ namespace Chess
 
 
             oppLabel = new Label();
-            oppLabel.Text = "05:00";
+            oppLabel.Text = FormatTime(gameTimeSeconds);
             oppLabel.Font = new Font("Consolas", 24);
             oppLabel.AutoSize = true;
             oppLabel.ForeColor = Color.White;
@@ -156,8 +203,11 @@ namespace Chess
 
             whiteClock.TimeChanged += t => myLabel.Text = FormatTime(t);
             blackClock.TimeChanged += t => oppLabel.Text = FormatTime(t);
-            whiteClock.TimeExpired += () => MessageBox.Show("Bia³y przegra³ na czas");
-            blackClock.TimeExpired += () => MessageBox.Show("Czarny przegra³ na czas");
+            whiteClock.TimeExpired += () => EndGame(GameWinner.Black, GameEndReason.TimeWhiteLost);
+            blackClock.TimeExpired += () => EndGame(GameWinner.White, GameEndReason.TimeBlackLost);
+
+
+
 
 
 
@@ -203,6 +253,9 @@ namespace Chess
 
         private FormStartDialog.PlayerColor playerColor;
         private int difficulty;
+
+        private int gameTimeSeconds = 300; // fallback
+        private int gameIncrement = 2;
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -250,7 +303,92 @@ namespace Chess
 
             // 5. Odœwie¿ widok
             bView.Invalidate();
+
+            whiteClock.Stop();
+            blackClock.Stop();
+            timer1.Stop();
+
+            whiteClock = new ChessClock(gameTimeSeconds, gameIncrement);
+            blackClock = new ChessClock(gameTimeSeconds, gameIncrement);
+
+
+            //whiteClock.TimeChanged += t => myLabel.Text = FormatTime(t);
+            //blackClock.TimeChanged += t => oppLabel.Text = FormatTime(t);
+            whiteClock.TimeChanged += t => myLabel.Text = FormatTime(t);
+            blackClock.TimeChanged += t => oppLabel.Text = FormatTime(t);
+
+            whiteClock.TimeExpired += () => EndGame(GameWinner.Black, GameEndReason.TimeWhiteLost);
+            blackClock.TimeExpired += () => EndGame(GameWinner.White, GameEndReason.TimeBlackLost);
+
+            myLabel.Text = FormatTime(gameTimeSeconds);
+            oppLabel.Text = FormatTime(gameTimeSeconds);
+
+
+            whiteToMove = true;
+            bView.IsGameOver = false;
+
         }
+        private void EndGameOnTime(string message)
+        {
+            timer1.Stop();
+            whiteClock.Stop();
+            blackClock.Stop();
+
+            MessageBox.Show(message);
+
+            bView.DisableInteraction(); // jeœli masz tak¹ metodê
+        }
+       
+        private void EndGame(GameWinner winner, GameEndReason reason)
+        {
+            timer1.Stop();
+            whiteClock.Stop();
+            blackClock.Stop();
+
+            bView.DisableInteraction();
+
+            string message = reason switch
+            {
+                GameEndReason.Checkmate =>
+                    winner == GameWinner.White ? "White wins (checkmate)" : "Black wins (checkmate)",
+
+                GameEndReason.Stalemate => "Stalemate — draw",
+                GameEndReason.Draw => "Draw",
+                GameEndReason.TimeWhiteLost => "White loses on time",
+                GameEndReason.TimeBlackLost => "Black loses on time",
+                GameEndReason.Surrender =>
+                    winner == GameWinner.White ? "Black surrenders — White wins" : "White surrenders — Black wins",
+
+                _ => "Game over"
+            };
+
+            MessageBox.Show(message, "Game over", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowNewGameDialog();
+        }
+
+        private void buttonQuit_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+        private void ShowNewGameDialog()
+        {
+            using (var dlg = new FormStartDialog())
+            {
+                if (dlg.ShowDialog() == DialogResult.OK)
+                {
+                    playerColor = dlg.SelectedColor;
+                    gameTimeSeconds = dlg.SelectedTimeMinutes * 60;
+                    gameIncrement = dlg.SelectedIncrement;
+
+                    ResetGame();
+
+                    bView.IsWhiteOrientation = (playerColor == FormStartDialog.PlayerColor.White);
+                    InitializeClocks();
+                    bView.Invalidate();
+                }
+            }
+        }
+
 
     }
 }

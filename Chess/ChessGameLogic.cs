@@ -158,22 +158,23 @@ namespace Chess
         }
 
 
-        public string CheckGameEnd()
+        public (GameWinner winner, GameEndReason reason)? CheckGameEnd()
         {
             if (game.IsCheckmated(Player.White))
-                return "Czarny wygrywa (mat na białym)";
+                return (GameWinner.Black, GameEndReason.Checkmate);
 
             if (game.IsCheckmated(Player.Black))
-                return "Biały wygrywa (mat na czarnym)";
+                return (GameWinner.White, GameEndReason.Checkmate);
 
             if (game.IsStalemated(Player.White) || game.IsStalemated(Player.Black))
-                return "Remis (pat)";
+                return (GameWinner.None, GameEndReason.Stalemate);
 
             if (game.IsDraw())
-                return "Remis";
+                return (GameWinner.None, GameEndReason.Draw);
 
             return null; // gra trwa
         }
+
 
 
 

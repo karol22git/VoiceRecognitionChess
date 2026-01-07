@@ -163,30 +163,7 @@ namespace Chess
             return new Point(file, rank);
         }
 
-        // ============================
-        // MAPOWANIE ENUM → OBRAZEK
-        // ============================
-        //private Image GetPieceImage(Piece piece)
-        //{
-        //    return piece switch
-        //    {
-        //        Piece.WhitePawn => Properties.Resources.white_pawn_svg,
-        //        Piece.WhiteKnight => Properties.Resources.white_knight_svg,
-        //        Piece.WhiteBishop => Properties.Resources.white_bishop_svg,
-        //        Piece.WhiteRook => Properties.Resources.white_rook_svg,
-        //        Piece.WhiteQueen => Properties.Resources.white_queen_svg,
-        //        Piece.WhiteKing => Properties.Resources.white_king_svg,
-        //
-        //        Piece.BlackPawn => Properties.Resources.black_pawn_svg,
-        //        Piece.BlackKnight => Properties.Resources.black_knight_svg,
-        //        Piece.BlackBishop => Properties.Resources.black_bishop_svg,
-        //        Piece.BlackRook => Properties.Resources.black_rook_svg,
-        //        Piece.BlackQueen => Properties.Resources.black_queen_svg,
-        //        Piece.BlackKing => Properties.Resources.black_king_svg,
-        //
-        //        _ => null
-        //    };
-        //}
+
         private static readonly Dictionary<Piece, Image> imageCache = new();
         public event Action<string, bool> MoveMade;
 
@@ -246,6 +223,7 @@ namespace Chess
         protected override void OnMouseClick(MouseEventArgs e)
         {
             base.OnMouseClick(e);
+            if (IsGameOver) return;
 
             if (Board == null)
                 return;
@@ -313,13 +291,13 @@ namespace Chess
             selectedSquare = null;
             legalMoves.Clear();
             Invalidate();
-            string result = gameLogic.CheckGameEnd();
-            if (result != null)
+            var end = gameLogic.CheckGameEnd();
+            if (end != null)
             {
-                MessageBox.Show(result, "Koniec gry", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                GameEnded?.Invoke();
+                GameEnded?.Invoke(end.Value.winner, end.Value.reason);
                 return;
             }
+
         }
 
         private void HighlightSquare(Graphics g, Point square)
@@ -338,7 +316,16 @@ namespace Chess
             legalMoves.Clear();
 
         }
-        public event Action GameEnded;
+        public event Action<GameWinner, GameEndReason> GameEnded;
+
+        public bool IsGameOver { get;  set; } = false;
+
+        public void DisableInteraction()
+        {
+            IsGameOver = true;
+        }
+
+
 
     }
 }
